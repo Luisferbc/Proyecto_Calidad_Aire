@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')  # Backend no interactivo
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
