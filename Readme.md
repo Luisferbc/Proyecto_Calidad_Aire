@@ -22,7 +22,7 @@ Proyecto de análisis de la relación entre la calidad del aire y la salud respi
 ## 🚀 Instalación
 
 ```bash
-pip install -r requirements.txt
+pip install -r Requirements.txt
 streamlit run app.py
 
 pip install matplotlib
