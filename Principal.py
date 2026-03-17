@@ -86,7 +86,7 @@ def run_queries(conn):
 
     queries = {}
 
-    queries["Consulta 1"] = """
+    queries["Defunciones por enfermedades respiratorias por municipio y mes"] = """
     SELECT
         d.id AS id_defuncion,
         t.anio,
@@ -105,7 +105,7 @@ def run_queries(conn):
     WHERE cd.codigo_cie10 LIKE 'J%'
     """
 
-    queries["Consulta 2"] = """
+    queries["Distribución mensual de mortalidad respiratoria por departamento"] = """
     SELECT
         t.mes,
         dep.nombre AS departamento,
@@ -120,7 +120,7 @@ def run_queries(conn):
     GROUP BY t.mes, dep.nombre
     """
 
-    queries["Consulta 3"] = """
+    queries["Municipios con alta contaminación PM2.5 y mortalidad respiratoria] = """
     SELECT
         mu.nombre AS municipio,
         dep.nombre AS departamento,
