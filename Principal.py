@@ -6,15 +6,23 @@ import seaborn as sns
 import plotly.express as px
 from sklearn.linear_model import LinearRegression
 import numpy as np
+from PIL import Image
+import os
 
-st.set_page_config(page_title="Observatorio Aire y Salud Colombia", layout="wide")
+# -------------------------------
+# CONFIGURACIÓN DE LA APP
+# -------------------------------
+st.set_page_config(
+    page_title="Observatorio Aire y Salud Colombia",
+    page_icon="🌎",
+    layout="wide"
+)
 
 # ---------------------------------------------------
 # DATOS SIMULADOS
 # ---------------------------------------------------
 
 def load_data():
-
     data = {}
 
     data["departamento"] = pd.DataFrame({
@@ -68,20 +76,15 @@ def load_data():
 
     return data
 
-
 # ---------------------------------------------------
 # BASE SQLITE
 # ---------------------------------------------------
 
 def create_database(data):
-
     conn = sqlite3.connect(":memory:")
-
     for name, df in data.items():
         df.to_sql(name, conn, index=False, if_exists="replace")
-
     return conn
-
 
 # ---------------------------------------------------
 # CONSULTAS SQL
@@ -91,42 +94,35 @@ def run_queries(conn):
 
     queries = {}
 
-    queries["Muertes respiratorias por municipio"] = """
-SELECT
-    mu.nombre AS municipio,
-    COUNT(*) AS muertes
-FROM defuncion d
-JOIN causa_defuncion cd ON cd.id_defuncion = d.id
-JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
-WHERE cd.codigo_cie10 LIKE 'J%'
-GROUP BY mu.nombre
-"""
+    queries["Muertes respiratorias por municipio"] = '''
+    SELECT mu.nombre AS municipio, COUNT(*) AS muertes
+    FROM defuncion d
+    JOIN causa_defuncion cd ON cd.id_defuncion = d.id
+    JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
+    WHERE cd.codigo_cie10 LIKE 'J%'
+    GROUP BY mu.nombre
+    '''
 
-    queries["Muertes respiratorias por mes"] = """
-SELECT
-    t.mes,
-    COUNT(*) AS muertes
-FROM defuncion d
-JOIN causa_defuncion cd ON cd.id_defuncion = d.id
-JOIN tiempo t ON t.id = d.id_tiempo
-WHERE cd.codigo_cie10 LIKE 'J%'
-GROUP BY t.mes
-"""
+    queries["Muertes respiratorias por mes"] = '''
+    SELECT t.mes, COUNT(*) AS muertes
+    FROM defuncion d
+    JOIN causa_defuncion cd ON cd.id_defuncion = d.id
+    JOIN tiempo t ON t.id = d.id_tiempo
+    WHERE cd.codigo_cie10 LIKE 'J%'
+    GROUP BY t.mes
+    '''
 
     results = {}
-
     for name, query in queries.items():
         results[name] = pd.read_sql_query(query, conn)
 
     return results
-
 
 # ---------------------------------------------------
 # INDICADORES
 # ---------------------------------------------------
 
 def indicadores(data):
-
     pm25 = data["medicion_calidad_aire"]["pm25"].mean()
 
     col1, col2 = st.columns(2)
@@ -134,23 +130,18 @@ def indicadores(data):
     col1.metric("PM2.5 Promedio", round(pm25,2))
 
     limite = 15
-
     if pm25 > limite:
         col2.error("Supera límite OMS")
     else:
         col2.success("Dentro límite OMS")
-
 
 # ---------------------------------------------------
 # MAPA INTERACTIVO
 # ---------------------------------------------------
 
 def mapa(data):
-
     df = data["municipio"].copy()
-
     pm25 = data["medicion_calidad_aire"].groupby("id_estacion").mean()
-
     df["pm25"] = pm25["pm25"].values
 
     fig = px.scatter_mapbox(
@@ -165,18 +156,14 @@ def mapa(data):
     )
 
     fig.update_layout(mapbox_style="open-street-map")
-
     st.plotly_chart(fig, use_container_width=True)
-
 
 # ---------------------------------------------------
 # CORRELACION
 # ---------------------------------------------------
 
 def correlacion(data):
-
     pm25 = data["medicion_calidad_aire"].groupby("id_estacion").mean()
-
     muertes = data["defuncion"].groupby("id_municipio_ocurrencia").count()
 
     df = pd.DataFrame({
@@ -185,36 +172,27 @@ def correlacion(data):
     })
 
     fig, ax = plt.subplots()
-
     sns.regplot(data=df, x="pm25", y="muertes", ax=ax)
-
     st.pyplot(fig)
 
     st.write("Correlación aproximada:", round(df.corr().iloc[0,1],2))
-
 
 # ---------------------------------------------------
 # PREDICCION
 # ---------------------------------------------------
 
 def prediccion(data):
-
     pm25 = data["medicion_calidad_aire"].groupby("id_estacion").mean()
-
     muertes = data["defuncion"].groupby("id_municipio_ocurrencia").count()
 
     X = pm25["pm25"].values.reshape(-1,1)
-
     y = muertes["id"].values[:5]
 
     modelo = LinearRegression()
-
     modelo.fit(X,y)
 
     pred = modelo.predict([[20]])
-
     st.write("Predicción de muertes con PM2.5=20:", int(pred[0]))
-
 
 # ---------------------------------------------------
 # DASHBOARD
@@ -222,7 +200,7 @@ def prediccion(data):
 
 def dashboard(data, results):
 
-    st.title("Observatorio Aire y Salud")
+    st.title("📊 Observatorio Aire y Salud")
 
     st.subheader("Indicadores")
     indicadores(data)
@@ -238,34 +216,13 @@ def dashboard(data, results):
 
     st.subheader("Consultas SQL")
 
-    consulta = st.selectbox(
-        "Seleccione consulta",
-        list(results.keys())
-    )
-
+    consulta = st.selectbox("Seleccione consulta", list(results.keys()))
     st.dataframe(results[consulta])
-
 
 # ---------------------------------------------------
 # LANDING
 # ---------------------------------------------------
 
-import streamlit as st
-from PIL import Image
-import os
-
-# -------------------------------
-# CONFIGURACIÓN DE LA APP
-# -------------------------------
-st.set_page_config(
-    page_title="Calidad del Aire en Colombia",
-    page_icon="🌎",
-    layout="wide"
-)
-
-# -------------------------------
-# FUNCIÓN LANDING (CORREGIDA)
-# -------------------------------
 def landing():
 
     st.title("🌫️ Calidad del Aire y Salud Pública en Colombia")
@@ -273,73 +230,44 @@ def landing():
     st.markdown("""
     ### 📌 Propósito del proyecto
 
-    Este proyecto analiza la relación entre la **calidad del aire** 
-    y las **comorbilidades en Colombia** durante el periodo 2020–2025.
-
-    Se busca identificar el impacto de contaminantes como:
-
-    - PM2.5  
-    - PM10  
-    - NO₂  
-    - O₃  
-
-    en enfermedades respiratorias y cardiovasculares.
+    Este proyecto analiza la relación entre la calidad del aire 
+    y las comorbilidades en Colombia (2020–2025).
     """)
 
-    # -------------------------------
-    # CARGA DE IMAGEN (CORREGIDA)
-    # -------------------------------
     ruta_imagen = "Calidad_aire.jpg"
 
     if os.path.exists(ruta_imagen):
         imagen = Image.open(ruta_imagen)
-        st.image(imagen, caption="Análisis de Calidad del Aire", use_container_width=True)
+        st.image(imagen, use_container_width=True)
     else:
-        st.warning("⚠️ No se encontró la imagen 'Calidad_aire.jpg' en el repositorio")
+        st.warning("Imagen no encontrada")
 
-    # -------------------------------
-    # OBJETIVOS
-    # -------------------------------
-    st.markdown("""
-    ### 🎯 Objetivos
+    st.info("Usa el menú lateral para navegar")
 
-    - Analizar tendencias de contaminación del aire  
-    - Evaluar impacto en salud pública  
-    - Identificar patrones geográficos y temporales  
-    - Apoyar decisiones basadas en datos  
-    """)
+# ---------------------------------------------------
+# MAIN
+# ---------------------------------------------------
 
-    # -------------------------------
-    # KPIs
-    # -------------------------------
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric("Periodo", "2020 - 2025")
-    col2.metric("Cobertura", "Colombia")
-    col3.metric("Tipo de análisis", "Ambiental + Salud")
-
-    st.info("👈 Usa el menú lateral para explorar los análisis")
-
-# -------------------------------
-# FUNCIÓN PRINCIPAL (CORREGIDA)
-# -------------------------------
 def main():
 
-    menu = st.sidebar.selectbox(
-        "Navegación",
-        ["Inicio", "Análisis"]
+    data = load_data()
+    conn = create_database(data)
+    results = run_queries(conn)
+
+    menu = st.sidebar.radio(
+        "🧭 Navegación",
+        ["🏠 Inicio", "📊 Dashboard"]
     )
 
-    if menu == "Inicio":
+    if menu == "🏠 Inicio":
         landing()
 
-    elif menu == "Análisis":
-        st.title("📊 Análisis de Datos")
-        st.write("Aquí irá tu análisis de calidad del aire...")
+    elif menu == "📊 Dashboard":
+        dashboard(data, results)
 
-# -------------------------------
-# EJECUCIÓN CORRECTA
-# -------------------------------
+# ---------------------------------------------------
+# EJECUCIÓN
+# ---------------------------------------------------
+
 if __name__ == "__main__":
     main()
-
