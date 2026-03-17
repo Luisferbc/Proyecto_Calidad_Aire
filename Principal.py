@@ -120,7 +120,7 @@ def run_queries(conn):
     GROUP BY t.mes, dep.nombre
     """
 
-    queries["Municipios con alta contaminación PM2.5 y mortalidad respiratoria] = """
+    queries["Municipios con alta contaminación PM2.5 y mortalidad respiratoria"] = """
     SELECT
         mu.nombre AS municipio,
         dep.nombre AS departamento,
