@@ -103,7 +103,7 @@ def run_queries(conn):
     JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
     JOIN departamento dep ON dep.id = mu.id_departamento
     WHERE cd.codigo_cie10 LIKE 'J%'
-    """
+    
 
     queries["Distribución mensual de mortalidad respiratoria por departamento"] = """
     SELECT
@@ -118,7 +118,7 @@ def run_queries(conn):
     JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
     JOIN departamento dep ON dep.id = mu.id_departamento
     GROUP BY t.mes, dep.nombre
-    """
+    
 
     queries["Municipios con alta contaminación PM2.5 y mortalidad respiratoria"] = """
     SELECT
