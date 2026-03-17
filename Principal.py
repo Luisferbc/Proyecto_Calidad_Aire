@@ -4,7 +4,7 @@ import sqlite3
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-st.set_page_config(page_title="Observatorio Aire y Salud", layout="wide")
+st.set_page_config(page_title="Observatorio Aire y Salud Colombia", layout="wide")
 
 # ---------------------------------------------------
 # CARGA DE DATOS SIMULADOS
@@ -14,51 +14,51 @@ def load_data():
 
     data = {}
 
-    data['departamento'] = pd.DataFrame({
-        'id':[1,2,3,4,5],
-        'nombre':['Antioquia','Atlántico','Bogotá','Valle','Santander']
+    data["departamento"] = pd.DataFrame({
+        "id":[1,2,3,4,5],
+        "nombre":["Antioquia","Atlántico","Bogotá","Valle","Santander"]
     })
 
-    data['municipio'] = pd.DataFrame({
-        'id':[1,2,3,4,5],
-        'nombre':['Medellín','Barranquilla','Bogotá','Cali','Bucaramanga'],
-        'id_departamento':[1,2,3,4,5]
+    data["municipio"] = pd.DataFrame({
+        "id":[1,2,3,4,5],
+        "nombre":["Medellín","Barranquilla","Bogotá","Cali","Bucaramanga"],
+        "id_departamento":[1,2,3,4,5]
     })
 
-    data['tiempo'] = pd.DataFrame({
-        'id':range(1,13),
-        'anio':[2024]*12,
-        'mes':range(1,13)
+    data["tiempo"] = pd.DataFrame({
+        "id":range(1,13),
+        "anio":[2024]*12,
+        "mes":range(1,13)
     })
 
-    data['persona'] = pd.DataFrame({
-        'id':range(1,101),
-        'sexo':['M','F']*50,
-        'grupo_edad_2':['Adulto']*100,
-        'ocupacion':['Empleado']*100
+    data["persona"] = pd.DataFrame({
+        "id":range(1,101),
+        "sexo":["M","F"]*50,
+        "grupo_edad_2":["Adulto"]*100,
+        "ocupacion":["Empleado"]*100
     })
 
-    data['defuncion'] = pd.DataFrame({
-        'id':range(1,101),
-        'id_persona':range(1,101),
-        'id_tiempo':[1,2,3,4,5]*20,
-        'id_municipio_ocurrencia':[1,2,3,4,5]*20,
-        'id_municipio_residencia':[1,2,3,4,5]*20
+    data["defuncion"] = pd.DataFrame({
+        "id":range(1,101),
+        "id_persona":range(1,101),
+        "id_tiempo":[1,2,3,4,5]*20,
+        "id_municipio_ocurrencia":[1,2,3,4,5]*20,
+        "id_municipio_residencia":[1,2,3,4,5]*20
     })
 
-    data['causa_defuncion'] = pd.DataFrame({
-        'id_defuncion':range(1,101),
-        'codigo_cie10':['J45','J12','I10','J20','E11']*20
+    data["causa_defuncion"] = pd.DataFrame({
+        "id_defuncion":range(1,101),
+        "codigo_cie10":["J45","J12","I10","J20","E11"]*20
     })
 
-    data['estacion_monitoreo'] = pd.DataFrame({
-        'id':[1,2,3,4,5],
-        'id_municipio':[1,2,3,4,5]
+    data["estacion_monitoreo"] = pd.DataFrame({
+        "id":[1,2,3,4,5],
+        "id_municipio":[1,2,3,4,5]
     })
 
-    data['medicion_calidad_aire'] = pd.DataFrame({
-        'id_estacion':[1,2,3,4,5]*20,
-        'pm25':[12,18,25,20,16]*20
+    data["medicion_calidad_aire"] = pd.DataFrame({
+        "id_estacion":[1,2,3,4,5]*20,
+        "pm25":[12,18,25,20,16]*20
     })
 
     return data
@@ -70,10 +70,10 @@ def load_data():
 
 def create_database(data):
 
-    conn = sqlite3.connect(':memory:')
+    conn = sqlite3.connect(":memory:")
 
     for name, df in data.items():
-        df.to_sql(name, conn, index=False, if_exists='replace')
+        df.to_sql(name, conn, index=False, if_exists="replace")
 
     return conn
 
@@ -86,7 +86,7 @@ def run_queries(conn):
 
     queries = {}
 
-    queries["Defunciones por enfermedades respiratorias por municipio y mes"] = """
+    queries["Defunciones respiratorias por municipio y mes"] = """
 SELECT
     d.id AS id_defuncion,
     t.anio,
@@ -105,7 +105,7 @@ JOIN departamento dep ON dep.id = mu.id_departamento
 WHERE cd.codigo_cie10 LIKE 'J%'
 """
 
-    queries["Distribución mensual de mortalidad respiratoria por departamento"] = """
+    queries["Distribución mensual de mortalidad respiratoria"] = """
 SELECT
     t.mes,
     dep.nombre AS departamento,
@@ -119,11 +119,11 @@ JOIN departamento dep ON dep.id = mu.id_departamento
 GROUP BY t.mes, dep.nombre
 """
 
-    queries["Municipios con alta contaminación PM2.5 y mortalidad respiratoria"] = """
+    queries["Municipios con alta contaminación PM2.5"] = """
 SELECT
     mu.nombre AS municipio,
     dep.nombre AS departamento,
-    AVG(mca.pm25) AS pm25_promedio
+    ROUND(AVG(mca.pm25),2) AS pm25_promedio
 FROM municipio mu
 JOIN departamento dep ON dep.id = mu.id_departamento
 JOIN estacion_monitoreo em ON em.id_municipio = mu.id
@@ -132,12 +132,36 @@ GROUP BY mu.id
 HAVING AVG(mca.pm25) > 15
 """
 
+    queries["Personas fallecidas en municipios con alta contaminación"] = """
+SELECT
+    p.id AS id_persona,
+    p.sexo,
+    p.grupo_edad_2,
+    mu.nombre AS municipio
+FROM persona p
+JOIN defuncion d ON d.id_persona = p.id
+JOIN causa_defuncion cd ON cd.id_defuncion = d.id
+JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
+WHERE cd.codigo_cie10 LIKE 'J%'
+"""
+
+    queries["Control de integridad de municipios"] = """
+SELECT
+    d.id AS id_defuncion,
+    d.id_municipio_residencia AS codigo_residencia_registrado
+FROM defuncion d
+WHERE d.id_municipio_residencia NOT IN (
+SELECT id FROM municipio
+)
+"""
+
     results = {}
 
-    for name, q in queries.items():
-        results[name] = pd.read_sql_query(q, conn)
+    for name, query in queries.items():
+        results[name] = pd.read_sql_query(query, conn)
 
     return results
+
 
 # ---------------------------------------------------
 # LANDING PAGE
@@ -150,8 +174,8 @@ def landing():
     st.image("Calidad_aire.jpg", use_container_width=True)
 
     st.write(
-        "Análisis de la relación entre **calidad del aire** y "
-        "**mortalidad por enfermedades respiratorias**."
+        "Análisis de la relación entre **calidad del aire (PM2.5)** "
+        "y **mortalidad por enfermedades respiratorias en Colombia**."
     )
 
     if st.button("Ingresar al Dashboard"):
@@ -164,18 +188,19 @@ def landing():
 
 def dashboard(results):
 
-    st.title("Dashboard Aire y Salud")
+    st.title("Dashboard de Análisis")
 
-    option = st.selectbox(
-        "Seleccione consulta",
+    consulta = st.selectbox(
+        "Seleccione una consulta",
         list(results.keys())
     )
 
-    df = results[option]
+    df = results[consulta]
 
-    st.dataframe(df)
+    st.dataframe(df, use_container_width=True)
 
-    if option == "Consulta 2":
+    # gráfico automático para consulta 2
+    if consulta == "Distribución mensual de mortalidad respiratoria":
 
         fig, ax = plt.subplots()
 
@@ -213,5 +238,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
+```
