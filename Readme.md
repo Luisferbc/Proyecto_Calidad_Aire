@@ -23,6 +23,14 @@ Proyecto de análisis de la relación entre la calidad del aire y la salud respi
 
 Estos se encuentran en la carpeta `data_base`
 
+### Modelo relacional
+
+![Modelo relacional](data_base/modelo%20relacional.png)
+
+### Modelo Entidad Relacional
+
+![Modelo entidad relacional](data_base/modelo%20entidad%20relacion.png.png)
+
 ## 🚀 Instalación
 
 ```bash
