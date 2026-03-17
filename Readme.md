@@ -19,6 +19,10 @@ Proyecto de análisis de la relación entre la calidad del aire y la salud respi
 - **Bryan Emanuel Cadena Hincapie**
 - **Luis Fernando Bermudez Cardona**
 
+## Entregable de bases de datos
+
+Estos se encuentran en la carpeta `data_base`
+
 ## 🚀 Instalación
 
 ```bash
@@ -28,3 +32,4 @@ streamlit run app.py
 pip install matplotlib
 # o
 poetry add matplotlib
+```
