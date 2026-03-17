@@ -121,6 +121,16 @@ def landing_page():
         unsafe_allow_html=True
     )
 
+    # Mostrar imagen desde el repositorio
+    col1, col2, col3 = st.columns([1,2,1])
+
+    with col2:
+        st.image(
+            "Calidad_aire.jpg",
+            caption="Calidad del aire y salud respiratoria en Colombia",
+            use_container_width=True
+        )
+
     st.write("""
     Plataforma de análisis de la relación entre **calidad del aire** y **salud pública**
     en las principales ciudades de Colombia.
