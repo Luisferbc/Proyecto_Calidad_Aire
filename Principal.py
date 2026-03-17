@@ -249,23 +249,76 @@ def dashboard(data, results):
 # ---------------------------------------------------
 # LANDING
 # ---------------------------------------------------
+import streamlit as st
 
-def landing():
+# Configuración de la página
+st.set_page_config(
+    page_title="Calidad del Aire en Colombia",
+    page_icon="🌎",
+    layout="wide"
+)
 
-    st.title("Observatorio Aire y Salud Colombia")
+# ---- LANDING PAGE ----
+st.title("🌫️ Calidad del Aire y Salud Pública en Colombia")
 
-    st.image("Calidad_aire.jpg", use_container_width=True)
+st.markdown("""
+### 📌 Propósito del proyecto
 
-    st.write(
-        """
-        Plataforma analítica que explora la relación entre
-        **contaminación del aire y mortalidad respiratoria en Colombia**.
-        """
-    )
+Este proyecto tiene como objetivo analizar la relación entre la **calidad del aire** 
+y las **comorbilidades en la población colombiana** durante el periodo 2020–2025.
 
-    if st.button("Entrar al Observatorio"):
-        st.session_state.page = "dashboard"
+Se busca identificar posibles correlaciones entre contaminantes atmosféricos como:
 
+- PM2.5
+- PM10
+- NO₂
+- O₃
+
+y su impacto en enfermedades como:
+
+- Enfermedades respiratorias
+- Enfermedades cardiovasculares
+- Mortalidad asociada
+
+---
+
+### 🎯 Objetivos
+
+- Analizar tendencias de contaminación del aire en Colombia  
+- Evaluar el impacto en la salud pública  
+- Identificar patrones geográficos y temporales  
+- Apoyar la toma de decisiones con datos  
+
+---
+
+### 📊 ¿Qué encontrarás en esta aplicación?
+
+- Visualizaciones interactivas de calidad del aire  
+- Análisis estadístico por ciudad y periodo  
+- Comparación con datos de salud  
+- Modelos de correlación  
+
+---
+
+### 🧪 Tecnologías utilizadas
+
+- Python  
+- Streamlit  
+- Pandas & NumPy  
+- Matplotlib & Plotly  
+- Scikit-learn  
+
+---
+
+### 🌎 Impacto esperado
+
+Este proyecto busca contribuir al entendimiento de cómo la contaminación del aire 
+afecta la salud de los colombianos, facilitando el desarrollo de políticas públicas 
+basadas en datos.
+
+""")
+
+st.info("👈 Usa el menú lateral para navegar por los análisis del proyecto")
 
 # ---------------------------------------------------
 # MAIN
