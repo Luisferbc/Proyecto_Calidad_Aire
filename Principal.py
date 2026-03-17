@@ -87,59 +87,57 @@ def run_queries(conn):
     queries = {}
 
     queries["Defunciones por enfermedades respiratorias por municipio y mes"] = """
-    SELECT
-        d.id AS id_defuncion,
-        t.anio,
-        t.mes,
-        mu.nombre AS municipio,
-        dep.nombre AS departamento,
-        cd.codigo_cie10,
-        p.sexo,
-        p.grupo_edad_2
-    FROM defuncion d
-    JOIN causa_defuncion cd ON cd.id_defuncion = d.id
-    JOIN persona p ON p.id = d.id_persona
-    JOIN tiempo t ON t.id = d.id_tiempo
-    JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
-    JOIN departamento dep ON dep.id = mu.id_departamento
-    WHERE cd.codigo_cie10 LIKE 'J%'
-    
+SELECT
+    d.id AS id_defuncion,
+    t.anio,
+    t.mes,
+    mu.nombre AS municipio,
+    dep.nombre AS departamento,
+    cd.codigo_cie10,
+    p.sexo,
+    p.grupo_edad_2
+FROM defuncion d
+JOIN causa_defuncion cd ON cd.id_defuncion = d.id
+JOIN persona p ON p.id = d.id_persona
+JOIN tiempo t ON t.id = d.id_tiempo
+JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
+JOIN departamento dep ON dep.id = mu.id_departamento
+WHERE cd.codigo_cie10 LIKE 'J%'
+"""
 
     queries["Distribución mensual de mortalidad respiratoria por departamento"] = """
-    SELECT
-        t.mes,
-        dep.nombre AS departamento,
-        COUNT(*) AS total_defunciones,
-        SUM(CASE WHEN cd.codigo_cie10 LIKE 'J%' THEN 1 ELSE 0 END)
-        AS muertes_respiratorias
-    FROM defuncion d
-    JOIN causa_defuncion cd ON cd.id_defuncion = d.id
-    JOIN tiempo t ON t.id = d.id_tiempo
-    JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
-    JOIN departamento dep ON dep.id = mu.id_departamento
-    GROUP BY t.mes, dep.nombre
-    
+SELECT
+    t.mes,
+    dep.nombre AS departamento,
+    COUNT(*) AS total_defunciones,
+    SUM(CASE WHEN cd.codigo_cie10 LIKE 'J%' THEN 1 ELSE 0 END) AS muertes_respiratorias
+FROM defuncion d
+JOIN causa_defuncion cd ON cd.id_defuncion = d.id
+JOIN tiempo t ON t.id = d.id_tiempo
+JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
+JOIN departamento dep ON dep.id = mu.id_departamento
+GROUP BY t.mes, dep.nombre
+"""
 
     queries["Municipios con alta contaminación PM2.5 y mortalidad respiratoria"] = """
-    SELECT
-        mu.nombre AS municipio,
-        dep.nombre AS departamento,
-        AVG(mca.pm25) AS pm25_promedio
-    FROM municipio mu
-    JOIN departamento dep ON dep.id = mu.id_departamento
-    JOIN estacion_monitoreo em ON em.id_municipio = mu.id
-    JOIN medicion_calidad_aire mca ON mca.id_estacion = em.id
-    GROUP BY mu.id
-    HAVING AVG(mca.pm25) > 15
-    
+SELECT
+    mu.nombre AS municipio,
+    dep.nombre AS departamento,
+    AVG(mca.pm25) AS pm25_promedio
+FROM municipio mu
+JOIN departamento dep ON dep.id = mu.id_departamento
+JOIN estacion_monitoreo em ON em.id_municipio = mu.id
+JOIN medicion_calidad_aire mca ON mca.id_estacion = em.id
+GROUP BY mu.id
+HAVING AVG(mca.pm25) > 15
+"""
 
     results = {}
 
-    for name,q in queries.items():
+    for name, q in queries.items():
         results[name] = pd.read_sql_query(q, conn)
 
     return results
-
 
 # ---------------------------------------------------
 # LANDING PAGE
