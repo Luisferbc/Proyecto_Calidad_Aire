@@ -131,7 +131,7 @@ def run_queries(conn):
     JOIN medicion_calidad_aire mca ON mca.id_estacion = em.id
     GROUP BY mu.id
     HAVING AVG(mca.pm25) > 15
-    """
+    
 
     results = {}
 
