@@ -249,6 +249,7 @@ def dashboard(data, results):
 # ---------------------------------------------------
 # LANDING
 # ---------------------------------------------------
+
 import streamlit as st
 from PIL import Image
 import os
@@ -336,5 +337,9 @@ def main():
         st.title("📊 Análisis de Datos")
         st.write("Aquí irá tu análisis de calidad del aire...")
 
-
+# -------------------------------
+# EJECUCIÓN CORRECTA
+# -------------------------------
+if __name__ == "__main__":
+    main()
 
