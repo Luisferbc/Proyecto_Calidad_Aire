@@ -250,75 +250,97 @@ def dashboard(data, results):
 # LANDING
 # ---------------------------------------------------
 import streamlit as st
+from PIL import Image
+import os
 
-# Configuración de la página
+# -------------------------------
+# CONFIGURACIÓN DE LA APP
+# -------------------------------
 st.set_page_config(
     page_title="Calidad del Aire en Colombia",
     page_icon="🌎",
     layout="wide"
 )
 
-# ---- LANDING PAGE ----
-st.title("🌫️ Calidad del Aire y Salud Pública en Colombia")
+# -------------------------------
+# FUNCIÓN LANDING (CORREGIDA)
+# -------------------------------
+def landing():
 
-st.markdown("""
-### 📌 Propósito del proyecto
+    st.title("🌫️ Calidad del Aire y Salud Pública en Colombia")
 
-Este proyecto tiene como objetivo analizar la relación entre la **calidad del aire** 
-y las **comorbilidades en la población colombiana** durante el periodo 2020–2025.
+    st.markdown("""
+    ### 📌 Propósito del proyecto
 
-Se busca identificar posibles correlaciones entre contaminantes atmosféricos como:
+    Este proyecto analiza la relación entre la **calidad del aire** 
+    y las **comorbilidades en Colombia** durante el periodo 2020–2025.
 
-- PM2.5
-- PM10
-- NO₂
-- O₃
+    Se busca identificar el impacto de contaminantes como:
 
-y su impacto en enfermedades como:
+    - PM2.5  
+    - PM10  
+    - NO₂  
+    - O₃  
 
-- Enfermedades respiratorias
-- Enfermedades cardiovasculares
-- Mortalidad asociada
+    en enfermedades respiratorias y cardiovasculares.
+    """)
 
----
+    # -------------------------------
+    # CARGA DE IMAGEN (CORREGIDA)
+    # -------------------------------
+    ruta_imagen = "Calidad_aire.jpg"
 
-### 🎯 Objetivos
+    if os.path.exists(ruta_imagen):
+        imagen = Image.open(ruta_imagen)
+        st.image(imagen, caption="Análisis de Calidad del Aire", use_container_width=True)
+    else:
+        st.warning("⚠️ No se encontró la imagen 'Calidad_aire.jpg' en el repositorio")
 
-- Analizar tendencias de contaminación del aire en Colombia  
-- Evaluar el impacto en la salud pública  
-- Identificar patrones geográficos y temporales  
-- Apoyar la toma de decisiones con datos  
+    # -------------------------------
+    # OBJETIVOS
+    # -------------------------------
+    st.markdown("""
+    ### 🎯 Objetivos
 
----
+    - Analizar tendencias de contaminación del aire  
+    - Evaluar impacto en salud pública  
+    - Identificar patrones geográficos y temporales  
+    - Apoyar decisiones basadas en datos  
+    """)
 
-### 📊 ¿Qué encontrarás en esta aplicación?
+    # -------------------------------
+    # KPIs
+    # -------------------------------
+    col1, col2, col3 = st.columns(3)
 
-- Visualizaciones interactivas de calidad del aire  
-- Análisis estadístico por ciudad y periodo  
-- Comparación con datos de salud  
-- Modelos de correlación  
+    col1.metric("Periodo", "2020 - 2025")
+    col2.metric("Cobertura", "Colombia")
+    col3.metric("Tipo de análisis", "Ambiental + Salud")
 
----
+    st.info("👈 Usa el menú lateral para explorar los análisis")
 
-### 🧪 Tecnologías utilizadas
+# -------------------------------
+# FUNCIÓN PRINCIPAL (CORREGIDA)
+# -------------------------------
+def main():
 
-- Python  
-- Streamlit  
-- Pandas & NumPy  
-- Matplotlib & Plotly  
-- Scikit-learn  
+    menu = st.sidebar.selectbox(
+        "Navegación",
+        ["Inicio", "Análisis"]
+    )
 
----
+    if menu == "Inicio":
+        landing()
 
-### 🌎 Impacto esperado
+    elif menu == "Análisis":
+        st.title("📊 Análisis de Datos")
+        st.write("Aquí irá tu análisis de calidad del aire...")
 
-Este proyecto busca contribuir al entendimiento de cómo la contaminación del aire 
-afecta la salud de los colombianos, facilitando el desarrollo de políticas públicas 
-basadas en datos.
-
-""")
-
-st.info("👈 Usa el menú lateral para navegar por los análisis del proyecto")
+# -------------------------------
+# EJECUCIÓN CORRECTA
+# -------------------------------
+if __name__ == "__main__":
+    main()
 
 # ---------------------------------------------------
 # MAIN
