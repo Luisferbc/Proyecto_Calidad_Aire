@@ -3,11 +3,14 @@ import pandas as pd
 import sqlite3
 import matplotlib.pyplot as plt
 import seaborn as sns
+import plotly.express as px
+from sklearn.linear_model import LinearRegression
+import numpy as np
 
 st.set_page_config(page_title="Observatorio Aire y Salud Colombia", layout="wide")
 
 # ---------------------------------------------------
-# CARGA DE DATOS SIMULADOS
+# DATOS SIMULADOS
 # ---------------------------------------------------
 
 def load_data():
@@ -22,7 +25,9 @@ def load_data():
     data["municipio"] = pd.DataFrame({
         "id":[1,2,3,4,5],
         "nombre":["Medellín","Barranquilla","Bogotá","Cali","Bucaramanga"],
-        "id_departamento":[1,2,3,4,5]
+        "id_departamento":[1,2,3,4,5],
+        "lat":[6.24,10.98,4.71,3.45,7.13],
+        "lon":[-75.57,-74.78,-74.07,-76.53,-73.12]
     })
 
     data["tiempo"] = pd.DataFrame({
@@ -65,7 +70,7 @@ def load_data():
 
 
 # ---------------------------------------------------
-# CREAR BASE SQLITE
+# BASE SQLITE
 # ---------------------------------------------------
 
 def create_database(data):
@@ -86,73 +91,26 @@ def run_queries(conn):
 
     queries = {}
 
-    queries["Defunciones respiratorias por municipio y mes"] = """
-SELECT
-    d.id AS id_defuncion,
-    t.anio,
-    t.mes,
-    mu.nombre AS municipio,
-    dep.nombre AS departamento,
-    cd.codigo_cie10,
-    p.sexo,
-    p.grupo_edad_2
-FROM defuncion d
-JOIN causa_defuncion cd ON cd.id_defuncion = d.id
-JOIN persona p ON p.id = d.id_persona
-JOIN tiempo t ON t.id = d.id_tiempo
-JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
-JOIN departamento dep ON dep.id = mu.id_departamento
-WHERE cd.codigo_cie10 LIKE 'J%'
-"""
-
-    queries["Distribución mensual de mortalidad respiratoria"] = """
-SELECT
-    t.mes,
-    dep.nombre AS departamento,
-    COUNT(*) AS total_defunciones,
-    SUM(CASE WHEN cd.codigo_cie10 LIKE 'J%' THEN 1 ELSE 0 END) AS muertes_respiratorias
-FROM defuncion d
-JOIN causa_defuncion cd ON cd.id_defuncion = d.id
-JOIN tiempo t ON t.id = d.id_tiempo
-JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
-JOIN departamento dep ON dep.id = mu.id_departamento
-GROUP BY t.mes, dep.nombre
-"""
-
-    queries["Municipios con alta contaminación PM2.5"] = """
+    queries["Muertes respiratorias por municipio"] = """
 SELECT
     mu.nombre AS municipio,
-    dep.nombre AS departamento,
-    ROUND(AVG(mca.pm25),2) AS pm25_promedio
-FROM municipio mu
-JOIN departamento dep ON dep.id = mu.id_departamento
-JOIN estacion_monitoreo em ON em.id_municipio = mu.id
-JOIN medicion_calidad_aire mca ON mca.id_estacion = em.id
-GROUP BY mu.id
-HAVING AVG(mca.pm25) > 15
-"""
-
-    queries["Personas fallecidas en municipios con alta contaminación"] = """
-SELECT
-    p.id AS id_persona,
-    p.sexo,
-    p.grupo_edad_2,
-    mu.nombre AS municipio
-FROM persona p
-JOIN defuncion d ON d.id_persona = p.id
+    COUNT(*) AS muertes
+FROM defuncion d
 JOIN causa_defuncion cd ON cd.id_defuncion = d.id
 JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
 WHERE cd.codigo_cie10 LIKE 'J%'
+GROUP BY mu.nombre
 """
 
-    queries["Control de integridad de municipios"] = """
+    queries["Muertes respiratorias por mes"] = """
 SELECT
-    d.id AS id_defuncion,
-    d.id_municipio_residencia AS codigo_residencia_registrado
+    t.mes,
+    COUNT(*) AS muertes
 FROM defuncion d
-WHERE d.id_municipio_residencia NOT IN (
-SELECT id FROM municipio
-)
+JOIN causa_defuncion cd ON cd.id_defuncion = d.id
+JOIN tiempo t ON t.id = d.id_tiempo
+WHERE cd.codigo_cie10 LIKE 'J%'
+GROUP BY t.mes
 """
 
     results = {}
@@ -164,7 +122,132 @@ SELECT id FROM municipio
 
 
 # ---------------------------------------------------
-# LANDING PAGE
+# INDICADORES
+# ---------------------------------------------------
+
+def indicadores(data):
+
+    pm25 = data["medicion_calidad_aire"]["pm25"].mean()
+
+    col1, col2 = st.columns(2)
+
+    col1.metric("PM2.5 Promedio", round(pm25,2))
+
+    limite = 15
+
+    if pm25 > limite:
+        col2.error("Supera límite OMS")
+    else:
+        col2.success("Dentro límite OMS")
+
+
+# ---------------------------------------------------
+# MAPA INTERACTIVO
+# ---------------------------------------------------
+
+def mapa(data):
+
+    df = data["municipio"].copy()
+
+    pm25 = data["medicion_calidad_aire"].groupby("id_estacion").mean()
+
+    df["pm25"] = pm25["pm25"].values
+
+    fig = px.scatter_mapbox(
+        df,
+        lat="lat",
+        lon="lon",
+        size="pm25",
+        color="pm25",
+        hover_name="nombre",
+        zoom=4,
+        height=500
+    )
+
+    fig.update_layout(mapbox_style="open-street-map")
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
+# ---------------------------------------------------
+# CORRELACION
+# ---------------------------------------------------
+
+def correlacion(data):
+
+    pm25 = data["medicion_calidad_aire"].groupby("id_estacion").mean()
+
+    muertes = data["defuncion"].groupby("id_municipio_ocurrencia").count()
+
+    df = pd.DataFrame({
+        "pm25":pm25["pm25"].values,
+        "muertes":muertes["id"].values[:5]
+    })
+
+    fig, ax = plt.subplots()
+
+    sns.regplot(data=df, x="pm25", y="muertes", ax=ax)
+
+    st.pyplot(fig)
+
+    st.write("Correlación aproximada:", round(df.corr().iloc[0,1],2))
+
+
+# ---------------------------------------------------
+# PREDICCION
+# ---------------------------------------------------
+
+def prediccion(data):
+
+    pm25 = data["medicion_calidad_aire"].groupby("id_estacion").mean()
+
+    muertes = data["defuncion"].groupby("id_municipio_ocurrencia").count()
+
+    X = pm25["pm25"].values.reshape(-1,1)
+
+    y = muertes["id"].values[:5]
+
+    modelo = LinearRegression()
+
+    modelo.fit(X,y)
+
+    pred = modelo.predict([[20]])
+
+    st.write("Predicción de muertes con PM2.5=20:", int(pred[0]))
+
+
+# ---------------------------------------------------
+# DASHBOARD
+# ---------------------------------------------------
+
+def dashboard(data, results):
+
+    st.title("Observatorio Aire y Salud")
+
+    st.subheader("Indicadores")
+    indicadores(data)
+
+    st.subheader("Mapa de contaminación")
+    mapa(data)
+
+    st.subheader("Correlación contaminación vs mortalidad")
+    correlacion(data)
+
+    st.subheader("Modelo predictivo")
+    prediccion(data)
+
+    st.subheader("Consultas SQL")
+
+    consulta = st.selectbox(
+        "Seleccione consulta",
+        list(results.keys())
+    )
+
+    st.dataframe(results[consulta])
+
+
+# ---------------------------------------------------
+# LANDING
 # ---------------------------------------------------
 
 def landing():
@@ -174,45 +257,14 @@ def landing():
     st.image("Calidad_aire.jpg", use_container_width=True)
 
     st.write(
-        "Análisis de la relación entre **calidad del aire (PM2.5)** "
-        "y **mortalidad por enfermedades respiratorias en Colombia**."
+        """
+        Plataforma analítica que explora la relación entre
+        **contaminación del aire y mortalidad respiratoria en Colombia**.
+        """
     )
 
-    if st.button("Ingresar al Dashboard"):
+    if st.button("Entrar al Observatorio"):
         st.session_state.page = "dashboard"
-
-
-# ---------------------------------------------------
-# DASHBOARD
-# ---------------------------------------------------
-
-def dashboard(results):
-
-    st.title("Dashboard de Análisis")
-
-    consulta = st.selectbox(
-        "Seleccione una consulta",
-        list(results.keys())
-    )
-
-    df = results[consulta]
-
-    st.dataframe(df, use_container_width=True)
-
-    # gráfico automático para consulta 2
-    if consulta == "Distribución mensual de mortalidad respiratoria":
-
-        fig, ax = plt.subplots()
-
-        sns.barplot(
-            data=df,
-            x="mes",
-            y="muertes_respiratorias",
-            hue="departamento",
-            ax=ax
-        )
-
-        st.pyplot(fig)
 
 
 # ---------------------------------------------------
@@ -233,7 +285,7 @@ def main():
     if st.session_state.page == "landing":
         landing()
     else:
-        dashboard(results)
+        dashboard(data, results)
 
 
 if __name__ == "__main__":
