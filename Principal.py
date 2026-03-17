@@ -336,33 +336,5 @@ def main():
         st.title("📊 Análisis de Datos")
         st.write("Aquí irá tu análisis de calidad del aire...")
 
-# -------------------------------
-# EJECUCIÓN CORRECTA
-# -------------------------------
-if __name__ == "__main__":
-    main()
 
-# ---------------------------------------------------
-# MAIN
-# ---------------------------------------------------
-
-def main():
-
-    data = load_data()
-
-    conn = create_database(data)
-
-    results = run_queries(conn)
-
-    if "page" not in st.session_state:
-        st.session_state.page = "landing"
-
-    if st.session_state.page == "landing":
-        landing()
-    else:
-        dashboard(data, results)
-
-
-if __name__ == "__main__":
-    main()
 
