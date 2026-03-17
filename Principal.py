@@ -1,274 +1,219 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+import sqlite3
 import matplotlib.pyplot as plt
 import seaborn as sns
-import warnings
 
-warnings.filterwarnings("ignore")
+st.set_page_config(page_title="Observatorio Aire y Salud", layout="wide")
 
-# -------------------------------------------------------
-# CONFIGURACIÓN DE LA APP
-# -------------------------------------------------------
+# ---------------------------------------------------
+# CARGA DE DATOS SIMULADOS
+# ---------------------------------------------------
 
-st.set_page_config(
-    page_title="Observatorio Aire Salud Colombia",
-    page_icon="🫁",
-    layout="wide"
-)
-
-# -------------------------------------------------------
-# ESTILOS
-# -------------------------------------------------------
-
-st.markdown("""
-<style>
-.main-header {
-    font-size: 3rem;
-    font-weight: bold;
-    color: #1E88E5;
-    text-align: center;
-}
-.section-header {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #43A047;
-}
-</style>
-""", unsafe_allow_html=True)
-
-
-# -------------------------------------------------------
-# CARGA DE DATOS
-# -------------------------------------------------------
-
-@st.cache_data
 def load_data():
 
     data = {}
 
-    # Municipios
-    data['municipio'] = pd.DataFrame({
-        'id_municipio': ['05001','08001','11001','13001','76001','68001'],
-        'nombre_municipio': ['Medellín','Barranquilla','Bogotá','Cartagena','Cali','Bucaramanga'],
-        'id_departamento': ['05','08','11','13','76','68'],
-        'poblacion': [2700000,1300000,8000000,990000,2400000,600000]
-    })
-
-    # Departamentos
     data['departamento'] = pd.DataFrame({
-        'id_departamento': ['05','08','11','13','76','68'],
-        'nombre_departamento': ['Antioquia','Atlántico','Bogotá','Bolívar','Valle del Cauca','Santander'],
-        'region': ['Andina','Caribe','Andina','Caribe','Pacífica','Andina']
+        'id':[1,2,3,4,5],
+        'nombre':['Antioquia','Atlántico','Bogotá','Valle','Santander']
     })
 
-    # Tiempo
+    data['municipio'] = pd.DataFrame({
+        'id':[1,2,3,4,5],
+        'nombre':['Medellín','Barranquilla','Bogotá','Cali','Bucaramanga'],
+        'id_departamento':[1,2,3,4,5]
+    })
+
     data['tiempo'] = pd.DataFrame({
-        'id_tiempo': range(1,13),
-        'fecha': pd.date_range('2024-01-01', periods=12, freq='M'),
-        'mes': range(1,13),
-        'anio': [2024]*12
+        'id':range(1,13),
+        'anio':[2024]*12,
+        'mes':range(1,13)
     })
 
-    # Estaciones
+    data['persona'] = pd.DataFrame({
+        'id':range(1,101),
+        'sexo':['M','F']*50,
+        'grupo_edad_2':['Adulto']*100,
+        'ocupacion':['Empleado']*100
+    })
+
+    data['defuncion'] = pd.DataFrame({
+        'id':range(1,101),
+        'id_persona':range(1,101),
+        'id_tiempo':[1,2,3,4,5]*20,
+        'id_municipio_ocurrencia':[1,2,3,4,5]*20,
+        'id_municipio_residencia':[1,2,3,4,5]*20
+    })
+
+    data['causa_defuncion'] = pd.DataFrame({
+        'id_defuncion':range(1,101),
+        'codigo_cie10':['J45','J12','I10','J20','E11']*20
+    })
+
     data['estacion_monitoreo'] = pd.DataFrame({
-        'id_estacion': range(1,7),
-        'id_municipio': ['05001','05001','08001','11001','76001','68001'],
-        'nombre_estacion': [
-            'Medellín Poblado',
-            'Medellín Bello',
-            'Barranquilla Centro',
-            'Bogotá Kennedy',
-            'Cali Univalle',
-            'Bucaramanga Norte'
-        ],
-        'latitud': [6.21,6.33,10.96,4.62,3.37,7.14],
-        'longitud': [-75.56,-75.55,-74.78,-74.14,-76.53,-73.12]
+        'id':[1,2,3,4,5],
+        'id_municipio':[1,2,3,4,5]
     })
 
-    # Mediciones
-    np.random.seed(42)
-
-    registros = []
-
-    for estacion in range(1,7):
-        for mes in range(1,13):
-
-            pm25 = np.random.uniform(10,40)
-
-            registros.append({
-                "id_estacion": estacion,
-                "id_tiempo": mes,
-                "pm25": pm25,
-                "pm10": pm25*1.8,
-                "temperatura": np.random.uniform(20,30),
-                "humedad": np.random.uniform(60,85)
-            })
-
-    data['medicion_calidad_aire'] = pd.DataFrame(registros)
+    data['medicion_calidad_aire'] = pd.DataFrame({
+        'id_estacion':[1,2,3,4,5]*20,
+        'pm25':[12,18,25,20,16]*20
+    })
 
     return data
 
 
-# -------------------------------------------------------
+# ---------------------------------------------------
+# CREAR BASE SQLITE
+# ---------------------------------------------------
+
+def create_database(data):
+
+    conn = sqlite3.connect(':memory:')
+
+    for name, df in data.items():
+        df.to_sql(name, conn, index=False, if_exists='replace')
+
+    return conn
+
+
+# ---------------------------------------------------
+# CONSULTAS SQL
+# ---------------------------------------------------
+
+def run_queries(conn):
+
+    queries = {}
+
+    queries["Consulta 1"] = """
+    SELECT
+        d.id AS id_defuncion,
+        t.anio,
+        t.mes,
+        mu.nombre AS municipio,
+        dep.nombre AS departamento,
+        cd.codigo_cie10,
+        p.sexo,
+        p.grupo_edad_2
+    FROM defuncion d
+    JOIN causa_defuncion cd ON cd.id_defuncion = d.id
+    JOIN persona p ON p.id = d.id_persona
+    JOIN tiempo t ON t.id = d.id_tiempo
+    JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
+    JOIN departamento dep ON dep.id = mu.id_departamento
+    WHERE cd.codigo_cie10 LIKE 'J%'
+    """
+
+    queries["Consulta 2"] = """
+    SELECT
+        t.mes,
+        dep.nombre AS departamento,
+        COUNT(*) AS total_defunciones,
+        SUM(CASE WHEN cd.codigo_cie10 LIKE 'J%' THEN 1 ELSE 0 END)
+        AS muertes_respiratorias
+    FROM defuncion d
+    JOIN causa_defuncion cd ON cd.id_defuncion = d.id
+    JOIN tiempo t ON t.id = d.id_tiempo
+    JOIN municipio mu ON mu.id = d.id_municipio_ocurrencia
+    JOIN departamento dep ON dep.id = mu.id_departamento
+    GROUP BY t.mes, dep.nombre
+    """
+
+    queries["Consulta 3"] = """
+    SELECT
+        mu.nombre AS municipio,
+        dep.nombre AS departamento,
+        AVG(mca.pm25) AS pm25_promedio
+    FROM municipio mu
+    JOIN departamento dep ON dep.id = mu.id_departamento
+    JOIN estacion_monitoreo em ON em.id_municipio = mu.id
+    JOIN medicion_calidad_aire mca ON mca.id_estacion = em.id
+    GROUP BY mu.id
+    HAVING AVG(mca.pm25) > 15
+    """
+
+    results = {}
+
+    for name,q in queries.items():
+        results[name] = pd.read_sql_query(q, conn)
+
+    return results
+
+
+# ---------------------------------------------------
 # LANDING PAGE
-# -------------------------------------------------------
+# ---------------------------------------------------
 
-def landing_page():
+def landing():
 
-    st.markdown(
-        '<p class="main-header">🫁 Observatorio Aire y Salud Colombia</p>',
-        unsafe_allow_html=True
+    st.title("Observatorio Aire y Salud Colombia")
+
+    st.image("Calidad_aire.jpg", use_container_width=True)
+
+    st.write(
+        "Análisis de la relación entre **calidad del aire** y "
+        "**mortalidad por enfermedades respiratorias**."
     )
 
-    # Mostrar imagen desde el repositorio
-    col1, col2, col3 = st.columns([1,2,1])
+    if st.button("Ingresar al Dashboard"):
+        st.session_state.page = "dashboard"
 
-    with col2:
-        st.image(
-            "Calidad_aire.jpg",
-            caption="Calidad del aire y salud respiratoria en Colombia",
-            use_container_width=True
+
+# ---------------------------------------------------
+# DASHBOARD
+# ---------------------------------------------------
+
+def dashboard(results):
+
+    st.title("Dashboard Aire y Salud")
+
+    option = st.selectbox(
+        "Seleccione consulta",
+        list(results.keys())
+    )
+
+    df = results[option]
+
+    st.dataframe(df)
+
+    if option == "Consulta 2":
+
+        fig, ax = plt.subplots()
+
+        sns.barplot(
+            data=df,
+            x="mes",
+            y="muertes_respiratorias",
+            hue="departamento",
+            ax=ax
         )
 
-    st.write("""
-    Plataforma de análisis de la relación entre **calidad del aire** y **salud pública**
-    en las principales ciudades de Colombia.
-    """)
-
-    if st.button("🚀 Ingresar al Dashboard"):
-        st.session_state["page"] = "dashboard"
-        st.rerun()
+        st.pyplot(fig)
 
 
-# -------------------------------------------------------
-# DASHBOARD
-# -------------------------------------------------------
-
-def dashboard():
-
-    data = load_data()
-
-    st.markdown(
-        '<p class="main-header">📊 Dashboard Calidad del Aire</p>',
-        unsafe_allow_html=True
-    )
-
-    # ---------------------------------------------------
-    # KPIs
-    # ---------------------------------------------------
-
-    pm25_prom = data["medicion_calidad_aire"]["pm25"].mean()
-    pm25_max = data["medicion_calidad_aire"]["pm25"].max()
-    dias_criticos = len(
-        data["medicion_calidad_aire"]
-        [data["medicion_calidad_aire"]["pm25"] > 25]
-    )
-
-    c1,c2,c3 = st.columns(3)
-
-    c1.metric("PM2.5 Promedio", f"{pm25_prom:.1f}")
-    c2.metric("PM2.5 Máximo", f"{pm25_max:.1f}")
-    c3.metric("Días Críticos", dias_criticos)
-
-    # ---------------------------------------------------
-    # MERGE DE DATOS
-    # ---------------------------------------------------
-
-    df = (
-        data["medicion_calidad_aire"]
-        .merge(data["estacion_monitoreo"], on="id_estacion")
-        .merge(data["municipio"], on="id_municipio")
-        .merge(data["tiempo"], on="id_tiempo")
-    )
-
-    # ---------------------------------------------------
-    # GRÁFICO
-    # ---------------------------------------------------
-
-    st.subheader("Evolución mensual PM2.5 por ciudad")
-
-    fig, ax = plt.subplots(figsize=(10,5))
-
-    sns.lineplot(
-        data=df,
-        x="mes",
-        y="pm25",
-        hue="nombre_municipio",
-        marker="o",
-        ax=ax
-    )
-
-    ax.axhline(25, color="red", linestyle="--", label="Límite OMS")
-
-    ax.set_ylabel("PM2.5")
-    ax.set_xlabel("Mes")
-    ax.set_title("Concentración de PM2.5")
-
-    st.pyplot(fig)
-
-    st.info("El PM2.5 es el contaminante más asociado a enfermedades respiratorias.")
-
-
-# -------------------------------------------------------
-# DOCUMENTACIÓN
-# -------------------------------------------------------
-
-def documentacion():
-
-    st.header("Documentación")
-
-    st.write("""
-    **Variables principales**
-
-    PM2.5 : Material particulado fino  
-    PM10 : Material particulado grueso  
-
-    **Tablas**
-
-    - municipio
-    - departamento
-    - estacion_monitoreo
-    - medicion_calidad_aire
-    - tiempo
-    """)
-
-
-# -------------------------------------------------------
+# ---------------------------------------------------
 # MAIN
-# -------------------------------------------------------
+# ---------------------------------------------------
 
 def main():
 
+    data = load_data()
+
+    conn = create_database(data)
+
+    results = run_queries(conn)
+
     if "page" not in st.session_state:
-        st.session_state["page"] = "landing"
+        st.session_state.page = "landing"
 
-    if st.session_state["page"] == "landing":
-
-        landing_page()
-
+    if st.session_state.page == "landing":
+        landing()
     else:
+        dashboard(results)
 
-        st.sidebar.title("Navegación")
-
-        opcion = st.sidebar.radio(
-            "Ir a",
-            ["Dashboard","Documentación","Inicio"]
-        )
-
-        if opcion == "Dashboard":
-            dashboard()
-
-        elif opcion == "Documentación":
-            documentacion()
-
-        else:
-            st.session_state["page"] = "landing"
-            st.rerun()
-
-
-# -------------------------------------------------------
 
 if __name__ == "__main__":
     main()
+
 
