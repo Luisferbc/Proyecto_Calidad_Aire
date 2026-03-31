@@ -64,7 +64,7 @@ Dashboard interactivo construido con **Streamlit** que incluye:
 | Top 10 causas de muerte respiratoria   | Barras     | `defuncion_diagnostico`, `diagnostico_cie10` |
 | Distribución de nivel de riesgo ICA    | Dona       | `indice_calidad_aire`                        |
 
-Una demo del dashboard está disponible en `video.mp4`.
+*Una demo del dashboard está disponible en [streamlit](https://proyectocalidadaire-waq7qs4trhqrxxiowmxapp.streamlit.app/).*
 
 ---
 
