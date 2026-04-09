@@ -53,6 +53,7 @@ El análisis completo se documenta en `documento_final.ipynb` e incluye:
 ---
 
 ## 📈 Visualización
+| 🏠 Landing Page | [analisis-calidadaire-mortalidad.netlify.app](https://analisis-calidadaire-mortalidad.netlify.app/) |
 
 Dashboard interactivo construido con **Streamlit** que incluye:
 
@@ -163,6 +164,8 @@ El informe completo del proyecto está disponible en `documento_final.ipynb` y c
 - Metodología (ETL, diseño de BD, análisis estadístico)
 - Resultados y visualizaciones
 - Conclusiones y recomendaciones de política pública
+- Marco Teorico
+- Diccionario de datos
 
 ## Ademas, todas loas notas y documentos del proyecto están disponibles en [Google Drive](https://drive.google.com/drive/folders/1OkOU16bduAeNxH3n1jS6EPcZXbAPGXvn?usp=drive_link).
 
